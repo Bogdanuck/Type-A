@@ -1,8 +1,12 @@
 {
   "name": "type-a",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Local-first speech-to-text desktop app by ASSIST.",
-  "author": "",
+  "author": {
+    "name": "Assist Group Team",
+    "email": "dev@assistgroup.tech",
+    "url": "https://assistgroup.tech"
+  },
   "private": true,
   "license": "MIT",
   "repository": {
