@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Type-A Recording</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      :root[data-theme="light"] {
+        color-scheme: light;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: transparent;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+      }
+
+      .meter {
+        width: 112px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 8px;
+        background: #050505;
+      }
+
+      .bars {
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+      }
+
+      .bar {
+        width: 3px;
+        height: 24px;
+        border-radius: 2px;
+        background: #d4d4d4;
+        opacity: 0.42;
+        transform: scaleY(0.18);
+        transform-origin: center;
+        transition: transform 70ms linear, opacity 100ms ease;
+        will-change: transform;
+      }
+
+      :root[data-theme="light"] .meter {
+        background: #ffffff;
+      }
+
+      :root[data-theme="light"] .bar {
+        background: #343434;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="meter" aria-label="Recording level">
+      <div class="bars" aria-hidden="true">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </div>
+    </div>
+    <script>
+      const bars = Array.from(document.querySelectorAll('.bar'));
+      const weights = [0.34, 0.52, 0.74, 0.92, 1, 0.92, 0.74, 0.52, 0.34];
+      const applyTheme = (theme) => {
+        document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
+      };
+
+      window.typeA?.getSettings?.().then((settings) => applyTheme(settings.theme));
+      window.typeA?.onOverlayTheme?.(applyTheme);
+      window.typeA?.onOverlayLevel?.((level) => {
+        const normalized = Math.max(0, Math.min(1, Number(level) || 0));
+        const responsiveLevel = Math.min(1, Math.pow(normalized, 0.72) * 1.15);
+        bars.forEach((bar, index) => {
+          const scale = 0.18 + responsiveLevel * 0.82 * weights[index];
+          bar.style.transform = `scaleY(${scale})`;
+          bar.style.opacity = String(0.42 + responsiveLevel * 0.5);
+        });
+      });
+    </script>
+  </body>
+</html>

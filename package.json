@@ -1,0 +1,124 @@
+{
+  "name": "type-a",
+  "version": "0.1.0",
+  "description": "Local-first speech-to-text desktop app by ASSIST.",
+  "author": "",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bogdanuck/Type-A.git"
+  },
+  "main": "dist-electron/main/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "tsc --noEmit && electron-vite build",
+    "preview": "electron-vite preview",
+    "lint": "eslint . --max-warnings=0",
+    "package": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win nsis --x64",
+    "dist:mac": "npm run build && electron-builder --mac dmg zip",
+    "dist:linux": "npm run build && electron-builder --linux AppImage deb --x64"
+  },
+  "dependencies": {
+    "lucide-react": "^1.17.0",
+    "electron-updater": "^6.6.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "sherpa-onnx-node": "^1.13.2"
+  },
+  "optionalDependencies": {
+    "uiohook-napi": "^1.5.4"
+  },
+  "devDependencies": {
+    "@electron-toolkit/tsconfig": "^1.0.1",
+    "@swc/core": "^1.15.3",
+    "@types/node": "^22.10.7",
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^42.3.3",
+    "electron-builder": "^26.8.1",
+    "electron-vite": "^5.0.0",
+    "eslint": "^9.18.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.16",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.20.0",
+    "yaml": "^2.8.1",
+    "vite": "^7.3.5"
+  },
+  "build": {
+    "appId": "com.assist.typea",
+    "productName": "Type-A",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Bogdanuck",
+        "repo": "Type-A",
+        "releaseType": "release"
+      }
+    ],
+    "electronUpdaterCompatibility": ">=2.16",
+    "extraMetadata": {
+      "typeAAutoUpdateEnabled": true
+    },
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "Type-A.png",
+      "Type-A.svg",
+      "favicon/**"
+    ],
+    "asarUnpack": [
+      "node_modules/sherpa-onnx-node/**",
+      "node_modules/sherpa-onnx-win-x64/**",
+      "node_modules/sherpa-onnx-darwin-x64/**",
+      "node_modules/sherpa-onnx-darwin-arm64/**",
+      "node_modules/sherpa-onnx-linux-x64/**",
+      "node_modules/sherpa-onnx-linux-arm64/**",
+      "node_modules/uiohook-napi/**"
+    ],
+    "win": {
+      "target": "nsis",
+      "artifactName": "${productName}-${version}-windows-${arch}.${ext}",
+      "icon": "favicon/android-chrome-512x512.png",
+      "signExecutable": false
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "artifactName": "${productName}-${version}-macos-${arch}.${ext}",
+      "category": "public.app-category.productivity",
+      "icon": "favicon/android-chrome-512x512.png",
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Type-A uses the microphone for local speech recognition.",
+        "NSScreenCaptureUsageDescription": "Type-A captures system audio when this source is enabled."
+      }
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "artifactName": "${productName}-${version}-linux-${arch}.${ext}",
+      "category": "Utility",
+      "icon": "favicon/android-chrome-512x512.png",
+      "synopsis": "Local voice typing for desktop"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
