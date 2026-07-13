@@ -56,6 +56,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Install native build dependencies
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxrandr-dev libxtst-dev libxt-dev
       - run: npm ci --include=optional
       - run: npm run build
       - run: npx electron-builder --linux AppImage deb --x64 --publish never
@@ -71,7 +73,15 @@ jobs:
 
   macos:
     needs: validate
-    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: macos-15-intel
+          - arch: arm64
+            runner: macos-14
+    runs-on: ${{ matrix.runner }}
     env:
       CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
       CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
@@ -95,40 +105,42 @@ jobs:
           else
             echo "SIGNED_BUILD=false" >> "$GITHUB_ENV"
           fi
-      - name: Install x64 dependencies
-        run: npm ci --include=optional --cpu=x64 --os=darwin
+      - run: npm ci --include=optional
       - run: npm run build
-      - name: Build macOS x64
+      - name: Build macOS ${{ matrix.arch }}
         shell: bash
         run: |
           if [[ "$SIGNED_BUILD" == "true" ]]; then
-            npx electron-builder --mac dmg zip --x64 --publish never
+            npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
           else
-            npx electron-builder --mac dmg zip --x64 --publish never --config.mac.identity=null --config.mac.hardenedRuntime=false --config.extraMetadata.typeAAutoUpdateEnabled=false
+            npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never --config.mac.identity=null --config.mac.hardenedRuntime=false --config.extraMetadata.typeAAutoUpdateEnabled=false
           fi
-          mv release release-macos-x64
-      - name: Install arm64 dependencies
-        shell: bash
-        run: |
-          rm -rf node_modules
-          npm ci --include=optional --cpu=arm64 --os=darwin
-      - run: npm run build
-      - name: Build macOS arm64
-        shell: bash
-        run: |
-          if [[ "$SIGNED_BUILD" == "true" ]]; then
-            npx electron-builder --mac dmg zip --arm64 --publish never
-          else
-            npx electron-builder --mac dmg zip --arm64 --publish never --config.mac.identity=null --config.mac.hardenedRuntime=false --config.extraMetadata.typeAAutoUpdateEnabled=false
-          fi
-          mv release release-macos-arm64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-macos-${{ matrix.arch }}
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/*.blockmap
+            release/latest-mac.yml
+          if-no-files-found: error
+
+  macos-metadata:
+    needs: macos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: build-macos-*
+          path: macos
       - name: Merge macOS artifacts and updater metadata
         shell: bash
         run: |
           mkdir release
-          cp release-macos-x64/*.dmg release-macos-x64/*.zip release-macos-x64/*.blockmap release/
-          cp release-macos-arm64/*.dmg release-macos-arm64/*.zip release-macos-arm64/*.blockmap release/
-          node scripts/merge-mac-update-metadata.mjs release-macos-x64/latest-mac.yml release-macos-arm64/latest-mac.yml release/latest-mac.yml
+          cp macos/build-macos-x64/*.dmg macos/build-macos-x64/*.zip macos/build-macos-x64/*.blockmap release/
+          cp macos/build-macos-arm64/*.dmg macos/build-macos-arm64/*.zip macos/build-macos-arm64/*.blockmap release/
+          node scripts/merge-mac-update-metadata.mjs macos/build-macos-x64/latest-mac.yml macos/build-macos-arm64/latest-mac.yml release/latest-mac.yml
       - uses: actions/upload-artifact@v4
         with:
           name: release-macos
@@ -136,7 +148,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    needs: [windows, linux, macos]
+    needs: [windows, linux, macos-metadata]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
