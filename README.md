@@ -23,7 +23,7 @@ Type-A captures microphone or system audio, recognizes speech with a local model
 - Toggle and hold-to-record hotkey modes.
 - Direct typing into the focused application.
 - Microphone and system-audio capture.
-- Local transcription history with automatic three-day cleanup.
+- Local transcription history with configurable automatic cleanup (three days by default).
 - On-demand Parakeet, GigaAM, and Whisper models.
 - Tray controls, recording indicator, and automatic updates.
 - Russian, English, and system-language UI localization.
@@ -40,7 +40,7 @@ Direct typing and system-audio capture are currently considered stable on Window
 
 ## Privacy
 
-Speech recognition runs on the user's computer. Audio and transcripts are not sent to Assist Group. Network access is used to download selected models and application updates. Local history is retained for no more than three days.
+Speech recognition runs on the user's computer. Audio and transcripts are not sent to Assist Group. Network access is used to download selected models and application updates. Local history is kept for three days by default; the retention period can be changed in Settings from one hour to unlimited storage.
 
 ## Development
 

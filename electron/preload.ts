@@ -4,6 +4,7 @@ export type AudioSource = 'system' | 'microphone';
 export type ActivationMode = 'toggle' | 'hold';
 export type ThemeMode = 'dark' | 'light';
 export type IdleUnloadMinutes = 1 | 5 | 15 | 30 | 0;
+export type HistoryRetentionHours = 1 | 6 | 24 | 72 | 168 | 240 | 720 | 0;
 export type LanguageMode =
   | 'auto'
   | 'ru'
@@ -37,6 +38,7 @@ export interface AppSettings {
   autoType: boolean;
   autoCopy: boolean;
   idleUnloadMinutes: IdleUnloadMinutes;
+  historyRetentionHours: HistoryRetentionHours;
   launchToTray: boolean;
   theme: ThemeMode;
   language: LanguageMode;

@@ -29,6 +29,7 @@ import { createRequire } from 'node:module';
 import type {
   AppCommand,
   AppSettings,
+  HistoryRetentionHours,
   HistoryRecord,
   HotkeyRegistrationPayload,
   HotkeyStatus,
@@ -50,7 +51,6 @@ import {
 const require = createRequire(import.meta.url);
 const isDev = !app.isPackaged;
 const defaultModelId = 'parakeet-tdt-0.6b-v3-int8';
-const historyRetentionMs = 3 * 24 * 60 * 60 * 1_000;
 
 interface SherpaOfflineStream {
   acceptWaveform(payload: { sampleRate: number; samples: Float32Array }): void;
@@ -247,6 +247,7 @@ const defaultSettings: AppSettings = {
   autoType: true,
   autoCopy: false,
   idleUnloadMinutes: 5,
+  historyRetentionHours: 72,
   launchToTray: false,
   theme: 'dark',
   language: 'auto',
@@ -334,6 +335,9 @@ function normalizeSettings(value: Partial<AppSettings>): AppSettings {
   const idle = [0, 1, 5, 15, 30].includes(Number(value.idleUnloadMinutes))
     ? Number(value.idleUnloadMinutes) as IdleUnloadMinutes
     : defaultSettings.idleUnloadMinutes;
+  const historyRetention = [0, 1, 6, 24, 72, 168, 240, 720].includes(Number(value.historyRetentionHours))
+    ? Number(value.historyRetentionHours) as HistoryRetentionHours
+    : defaultSettings.historyRetentionHours;
   const activeModelId = value.activeModelId && modelCatalog.some((model) => model.id === value.activeModelId)
     ? value.activeModelId
     : defaultModelId;
@@ -349,6 +353,7 @@ function normalizeSettings(value: Partial<AppSettings>): AppSettings {
     autoType: value.autoType ?? defaultSettings.autoType,
     autoCopy: value.autoCopy ?? defaultSettings.autoCopy,
     idleUnloadMinutes: idle,
+    historyRetentionHours: historyRetention,
     launchToTray: value.launchToTray ?? defaultSettings.launchToTray,
     theme: value.theme === 'light' ? 'light' : 'dark',
     language: supportedLanguageModes.has(String(value.language))
@@ -362,9 +367,13 @@ function readSettings(): AppSettings {
 }
 
 function writeSettings(settings: Partial<AppSettings>): AppSettings {
-  const next = normalizeSettings({ ...readSettings(), ...settings });
+  const current = readSettings();
+  const next = normalizeSettings({ ...current, ...settings });
   mkdirSync(dirname(settingsPath()), { recursive: true });
   writeFileSync(settingsPath(), JSON.stringify(next, null, 2));
+  if (next.historyRetentionHours !== current.historyRetentionHours) {
+    readHistory(next.historyRetentionHours);
+  }
   sendToRenderer('settings:changed', next);
   if (lastTrayState) {
     updateTray({ ...lastTrayState, settings: next });
@@ -1019,7 +1028,7 @@ function enqueueTranscription(payload: SttChunkPayload): void {
     });
 }
 
-function readHistory(): HistoryRecord[] {
+function readHistory(retentionHours = readSettings().historyRetentionHours): HistoryRecord[] {
   if (!existsSync(historyPath())) {
     return [];
   }
@@ -1034,11 +1043,15 @@ function readHistory(): HistoryRecord[] {
       }
     })
     .filter((record): record is HistoryRecord => Boolean(record));
-  const cutoff = Date.now() - historyRetentionMs;
-  const retained = records.filter((record) => {
-    const timestamp = Number.isFinite(record.endedAt) ? record.endedAt : record.startedAt;
-    return Number.isFinite(timestamp) && timestamp >= cutoff;
-  });
+  const cutoff = retentionHours === 0
+    ? null
+    : Date.now() - retentionHours * 60 * 60 * 1_000;
+  const retained = cutoff === null
+    ? records
+    : records.filter((record) => {
+        const timestamp = Number.isFinite(record.endedAt) ? record.endedAt : record.startedAt;
+        return Number.isFinite(timestamp) && timestamp >= cutoff;
+      });
   if (retained.length !== records.length) {
     writeHistory(retained);
   }

@@ -251,6 +251,7 @@ const fallbackSettings: AppSettings = {
   autoType: true,
   autoCopy: false,
   idleUnloadMinutes: 5,
+  historyRetentionHours: 72,
   launchToTray: false,
   theme: 'dark',
   language: 'auto',
@@ -264,6 +265,15 @@ function formatDateTime(timestamp: number, locale: string): string {
     hour: '2-digit',
     minute: '2-digit',
   }).format(timestamp);
+}
+
+function formatHistoryRetention(hours: number, locale: string): string {
+  const useDays = hours >= 24;
+  return new Intl.NumberFormat(locale, {
+    style: 'unit',
+    unit: useDays ? 'day' : 'hour',
+    unitDisplay: 'long',
+  }).format(useDays ? hours / 24 : hours);
 }
 
 function sourceLabel(source: AudioSource, t: AppTranslations): string {
@@ -568,8 +578,11 @@ export function App() {
     if (patch.activeModelId) {
       await refreshModelStatus(patch.activeModelId);
     }
+    if (patch.historyRetentionHours !== undefined) {
+      await loadHistory();
+    }
     return next;
-  }, [refreshModelStatus]);
+  }, [loadHistory, refreshModelStatus]);
 
   useEffect(() => {
     if (!hotkeyCaptureActive) {
@@ -1179,6 +1192,20 @@ export function App() {
 
         <section className="settings-group">
           <h2><AppWindow size={16} /> {t.application}</h2>
+          <label className="field-label">
+            {t.historyRetention}
+            <CustomSelect
+              value={settings.historyRetentionHours}
+              onChange={(value) => void patchSettings({ historyRetentionHours: Number(value) as AppSettings['historyRetentionHours'] })}
+              options={[
+                ...[1, 6, 24, 72, 168, 240, 720].map((hours) => ({
+                  value: hours,
+                  label: formatHistoryRetention(hours, dateLocale),
+                })),
+                { value: 0, label: t.never },
+              ]}
+            />
+          </label>
           <label className="field-label">
             {t.idleUnload}
             <CustomSelect
